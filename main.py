@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from numpy import fft as fft
-import numpy as np
 import scipy.io.wavfile
+import numpy as np
 import pydub
 import os
 
@@ -99,7 +99,7 @@ def main():
     print('Length of music in seconds: ' + str(audioData.shape[0] / rate))
     print('Number of mono/stereo channels: ' + str(audioData.shape[1]))
 
-    # getPitchPointsTimeData(rate, audioData)
+    getPitchPointsTimeData(rate, audioData)
     # print(getAmplitudeMagnitudeForAllSeconds(rate, audioData))
 
     # print(getVarianceOfData(audioData))
