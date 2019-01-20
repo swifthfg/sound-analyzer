@@ -9,6 +9,9 @@ import os
 plt.rcParams['agg.path.chunksize'] = 10000
 
 EXTENSION_WAV = '.wav'
+PLOT_ALPHA = 0.8
+NP_AXIS_ROW = 0
+NP_AXIS_COL = 1
 
 
 def convertMP3toWAV(fileMP3Path):
@@ -20,8 +23,8 @@ def convertMP3toWAV(fileMP3Path):
 
 def drawFastFourierTransformedSoundGraph(audioData):
     fourier = fft.fft(audioData)
-    plt.plot(fourier, color='#ff7f00')
-    plt.xlabel('k')
+    plt.plot(fourier, alpha=PLOT_ALPHA, color='#ff7f00')
+    plt.xlabel('c')
     plt.ylabel('Amplitude')
     plt.show()
 
@@ -30,7 +33,7 @@ def drawAmplitudeOverTimeGraph(rate, audioData):
     time = np.arange(0, float(audioData.shape[0]), 1) / rate
     plt.figure(1)
     plt.subplot(211)
-    plt.plot(time, audioData, linewidth=0.01, alpha=0.7, color='#ff7f00')
+    plt.plot(time, audioData, linewidth=0.01, alpha=PLOT_ALPHA, color='#ff7f00')
     plt.xlabel('Time (s)')
     plt.ylabel('Amplitude')
     plt.show()
@@ -51,6 +54,41 @@ def getTrackTimeInSeconds(rate, audioData):
     return audioData.shape[0] / rate
 
 
+def getPitchPointsTimeData(rate, audioData):
+    time = np.arange(0, float(audioData.shape[0]), 1) / rate
+    print(len(time))
+    data = getDataPointsInSpecifiedTimeInterval(rate, audioData, 2, 3)
+    for i in range(1000):
+        print(data[i])
+
+
+def getDataPointsInSpecifiedTimeInterval(rate, audioData, startSecond, endSecond):
+    startIndex = rate * startSecond
+    endIndex = rate * endSecond
+    return audioData[startIndex:endIndex]
+
+
+def getVarianceOfData(audioData):
+    return np.var(audioData, axis=NP_AXIS_ROW)
+
+
+def getAmplitudeMagnitudeInSecond(audioData):
+    return np.sum(np.abs(audioData))
+
+
+def getAmplitudeMagnitudeForAllSeconds(rate, audioData):
+    totalTime = getTrackTimeInSeconds(rate, audioData)
+    resList = []
+    for i in range(int(totalTime)):
+        dataPoints = getDataPointsInSpecifiedTimeInterval(rate, audioData, i, i+1)
+        resList.append((i, getAmplitudeMagnitudeInSecond(dataPoints)))
+    resNP = np.array(resList)
+
+    # sort in-place according to f1 field corresponding to second column(amplitude sum)
+    resNP.view('i8, i8')[::-1].sort(order=['f1'], axis=NP_AXIS_ROW)
+    return resNP
+
+
 def main():
     print('Start analyzing')
     fileWAV = 'Respect.wav'
@@ -61,7 +99,10 @@ def main():
     print('Length of music in seconds: ' + str(audioData.shape[0] / rate))
     print('Number of mono/stereo channels: ' + str(audioData.shape[1]))
 
-    time = np.arange(0, float(audioData.shape[0]), 1) / rate
+    # getPitchPointsTimeData(rate, audioData)
+    # print(getAmplitudeMagnitudeForAllSeconds(rate, audioData))
+
+    # print(getVarianceOfData(audioData))
 
     # drawAmplitudeOverTimeGraph(rate, audioData)
 
