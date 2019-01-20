@@ -12,6 +12,7 @@ EXTENSION_WAV = '.wav'
 PLOT_ALPHA = 0.8
 NP_AXIS_ROW = 0
 NP_AXIS_COL = 1
+PITCH_CONST = 0.5
 
 
 def convertMP3toWAV(fileMP3Path):
@@ -54,14 +55,6 @@ def getTrackTimeInSeconds(rate, audioData):
     return audioData.shape[0] / rate
 
 
-def getPitchPointsTimeData(rate, audioData):
-    time = np.arange(0, float(audioData.shape[0]), 1) / rate
-    print(len(time))
-    data = getDataPointsInSpecifiedTimeInterval(rate, audioData, 2, 3)
-    for i in range(1000):
-        print(data[i])
-
-
 def getDataPointsInSpecifiedTimeInterval(rate, audioData, startSecond, endSecond):
     startIndex = rate * startSecond
     endIndex = rate * endSecond
@@ -82,12 +75,22 @@ def getAmplitudeMagnitudeForAllSeconds(rate, audioData):
     for i in range(int(totalTime)):
         dataPoints = getDataPointsInSpecifiedTimeInterval(rate, audioData, i, i+1)
         resList.append((i, getAmplitudeMagnitudeInSecond(dataPoints)))
-    resNP = np.array(resList)
+    resNP = np.array(resList, dtype=float)
 
     # sort in-place according to f1 field corresponding to second column(amplitude sum)
-    resNP.view('i8, i8')[::-1].sort(order=['f1'], axis=NP_AXIS_ROW)
+    resNP.view('i8, f8')[::-1].sort(order=['f1'], axis=NP_AXIS_ROW)
     return resNP
 
+
+def normalizeAmplitudeTotals(timeAmplitudeData):
+    onlyMagnitude = timeAmplitudeData[:, 1]
+    normalized = onlyMagnitude / float(onlyMagnitude.max())
+    timeAmplitudeData[:, 1] = normalized
+    return timeAmplitudeData
+
+
+def getPitchPoints(normalizedData):
+    return normalizedData[normalizedData[:, 1] > PITCH_CONST]
 
 def main():
     print('Start analyzing')
@@ -99,8 +102,12 @@ def main():
     print('Length of music in seconds: ' + str(audioData.shape[0] / rate))
     print('Number of mono/stereo channels: ' + str(audioData.shape[1]))
 
-    getPitchPointsTimeData(rate, audioData)
-    # print(getAmplitudeMagnitudeForAllSeconds(rate, audioData))
+    # getPitchPointsTimeData(rate, audioData)
+
+    timeAmplitudeData = getAmplitudeMagnitudeForAllSeconds(rate, audioData)
+    a = getPitchPoints(normalizeAmplitudeTotals(timeAmplitudeData))
+    a.sort(axis=0)
+    print(a)
 
     # print(getVarianceOfData(audioData))
 
