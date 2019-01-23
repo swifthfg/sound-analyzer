@@ -12,7 +12,7 @@ EXTENSION_WAV = '.wav'
 PLOT_ALPHA = 0.8
 NP_AXIS_ROW = 0
 NP_AXIS_COL = 1
-PITCH_CONST = 0.6
+PITCH_CONST = 0.7
 
 
 def convertMP3toWAV(fileMP3Path):
@@ -69,14 +69,20 @@ def getAmplitudeMagnitudeInSecond(audioData):
     return np.sum(np.abs(audioData))
 
 
+def getMaxOfAmplitudes(audioData):
+    leftChannel = getLeftChannelDataOfSound(audioData)
+    return leftChannel.max()
+
+
 def getAmplitudeMagnitudeForAllSeconds(rate, audioData):
     totalTime = getTrackTimeInSeconds(rate, audioData)
     resList = []
     i = 0
     while i < totalTime:
-        dataPoints = getDataPointsInSpecifiedTimeInterval(rate, audioData, i, i+0.1)
-        resList.append((i, getAmplitudeMagnitudeInSecond(dataPoints)))
-        i += 0.1
+        dataPoints = getDataPointsInSpecifiedTimeInterval(rate, audioData, i, i+0.05)
+        # resList.append((i, getAmplitudeMagnitudeInSecond(dataPoints)))
+        resList.append((i, getMaxOfAmplitudes(dataPoints)))
+        i += 0.05
     resNP = np.array(resList, dtype=float)
 
     # sort in-place according to f1 field corresponding to second column(amplitude sum)
@@ -93,6 +99,7 @@ def normalizeAmplitudeTotals(timeAmplitudeData):
 
 def getPitchPoints(normalizedData):
     return normalizedData[normalizedData[:, 1] > PITCH_CONST]
+
 
 def main():
     print('Start analyzing')
