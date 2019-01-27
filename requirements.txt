@@ -1,3 +1,5 @@
 scipy
 matplotlib
 pydub
+boto3
+python-dotenv
