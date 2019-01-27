@@ -109,7 +109,9 @@ def getPitchPoints(normalizedData):
 
 def main():
     try:
-        sqsClient = boto3.client('sqs')
+        sqs = boto3.resource('sqs')
+        queue = sqs.Queue(os.getenv('sqs_url'))
+
         dynamodb = boto3.resource('dynamodb')
         peakTable = dynamodb.Table(os.getenv('dynamodb_table'))
 
@@ -126,17 +128,31 @@ def main():
         peakData = getPitchPoints(normalizeAmplitudeTotals(timeAmplitudeData))
         peakList = peakData.tolist()
         decimalList = list(map(lambda x: [decimal.Decimal(str(x[0])), decimal.Decimal(str(x[1]))], peakList))
+        peakId = str(time.time())
 
         dynamoRes = peakTable.put_item(
             Item={
-                'id': str(time.time()),
+                'id': peakId,
                 'filename': fileWAV,
                 'rate': rate,
                 'peakData': decimalList
             }
         )
         print(dynamoRes)
-        # print(peakData)
+
+        sqsRes = queue.send_message(
+            MessageBody='peakdata',
+            MessageAttributes={
+                'peakId': {
+                    'StringValue': peakId,
+                    'DataType': 'String'
+                }
+            },
+            MessageDeduplicationId=peakId,
+            MessageGroupId=os.getenv('sqs_group_id')
+        )
+
+        print(sqsRes)
     except Exception as e:
         print('Error:')
         print(e)
