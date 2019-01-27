@@ -2,8 +2,14 @@ import matplotlib.pyplot as plt
 from numpy import fft as fft
 import scipy.io.wavfile
 import numpy as np
+import decimal
 import pydub
+import boto3
+import time
 import os
+
+from dotenv import load_dotenv
+load_dotenv()
 
 # to get rid of the error saying the plotlib cannot draw that much data points
 plt.rcParams['agg.path.chunksize'] = 10000
@@ -102,25 +108,39 @@ def getPitchPoints(normalizedData):
 
 
 def main():
-    print('Start analyzing')
-    fileWAV = 'Respect.wav'
+    try:
+        sqsClient = boto3.client('sqs')
+        dynamodb = boto3.resource('dynamodb')
+        peakTable = dynamodb.Table(os.getenv('dynamodb_table'))
 
-    rate, audioData = scipy.io.wavfile.read(fileWAV)
-    print('Rate: ' + str(rate))  # how many data points are there per second
-    print('Audio shape: ' + str(audioData.shape))
-    print('Length of music in seconds: ' + str(audioData.shape[0] / rate))
-    print('Number of mono/stereo channels: ' + str(audioData.shape[1]))
+        print('Start analyzing')
+        fileWAV = 'Respect.wav'
 
-    # getPitchPointsTimeData(rate, audioData)
+        rate, audioData = scipy.io.wavfile.read(fileWAV)
+        print('Rate: ' + str(rate))  # how many data points are there per second
+        print('Audio shape: ' + str(audioData.shape))
+        print('Length of music in seconds: ' + str(audioData.shape[0] / rate))
+        print('Number of mono/stereo channels: ' + str(audioData.shape[1]))
 
-    timeAmplitudeData = getAmplitudeMagnitudeForAllSeconds(rate, audioData)
-    a = getPitchPoints(normalizeAmplitudeTotals(timeAmplitudeData))
-    # a.sort(axis=0)
-    print(a)
+        timeAmplitudeData = getAmplitudeMagnitudeForAllSeconds(rate, audioData)
+        peakData = getPitchPoints(normalizeAmplitudeTotals(timeAmplitudeData))
+        peakList = peakData.tolist()
+        decimalList = list(map(lambda x: [decimal.Decimal(str(x[0])), decimal.Decimal(str(x[1]))], peakList))
 
-    # print(getVarianceOfData(audioData))
+        dynamoRes = peakTable.put_item(
+            Item={
+                'id': str(time.time()),
+                'filename': fileWAV,
+                'rate': rate,
+                'peakData': decimalList
+            }
+        )
+        print(dynamoRes)
+        # print(peakData)
+    except Exception as e:
+        print('Error:')
+        print(e)
 
-    # drawAmplitudeOverTimeGraph(rate, audioData)
 
 
 if __name__ == '__main__':
