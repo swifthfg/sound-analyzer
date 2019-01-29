@@ -130,6 +130,7 @@ def main():
         decimalList = list(map(lambda x: [decimal.Decimal(str(x[0])), decimal.Decimal(str(x[1]))], peakList))
         peakId = str(time.time())
 
+        """
         dynamoRes = peakTable.put_item(
             Item={
                 'id': peakId,
@@ -139,6 +140,7 @@ def main():
             }
         )
         print(dynamoRes)
+        """
 
         sqsRes = queue.send_message(
             MessageBody='peakdata',
@@ -148,7 +150,7 @@ def main():
                     'DataType': 'String'
                 }
             },
-            MessageDeduplicationId=peakId,
+            MessageDeduplicationId=peakId,  # 1548604664.134423
             MessageGroupId=os.getenv('sqs_group_id')
         )
 
